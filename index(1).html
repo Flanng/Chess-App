@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Opening Explorer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script async src="https://cdn.jsdelivr.net/npm/stockfish@10.0.2/src/stockfish.asm.js"></script>
+<style>
+:root{--bg:#f4f1ea;--card:#fff;--tx:#23201b;--mu:#7a7468;--bd:#e2ddd2;--lt:#eeeed2;--dk:#6a9b41;--hl:#f6f66980;--ac:#4f7d2c;--acx:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#262421;--card:#312e2b;--tx:#ecebe9;--mu:#a09c94;--bd:#46423d;--lt:#ebecd0;--dk:#739552;--ac:#7fa650}}
+:root[data-theme="dark"]{--bg:#262421;--card:#312e2b;--tx:#ecebe9;--mu:#a09c94;--bd:#46423d;--lt:#ebecd0;--dk:#739552;--ac:#7fa650}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.app{max-width:1020px;margin:0 auto;padding:16px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.bw{flex:1 1 380px;max-width:560px}
+#frame{--lt:#f0d9b5;--dk:#b58863;position:relative;padding:5%;border-radius:8px;background:linear-gradient(135deg,#7b4b29,#52301a);box-shadow:0 10px 28px #0005,inset 0 0 0 2px #0004,inset 0 2px 0 #ffffff25}
+#frame.green{--lt:#eeeed2;--dk:#769656;background:linear-gradient(135deg,#454440,#2f2e2b)}
+#board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));aspect-ratio:1;overflow:hidden;user-select:none;box-shadow:0 0 0 1px #0006,0 2px 6px #0005}
+.sq{position:relative;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--lt)}
+.sq.d{background:var(--dk)}
+.sq.l::after,.sq.s::after{content:"";position:absolute;inset:0;background:var(--hl)}
+.sq.t::before{content:"";position:absolute;width:28%;height:28%;border-radius:50%;background:#00000030}
+.sq.tc::before{width:90%;height:90%;background:none;border:4px solid #00000030}
+.pc{position:absolute;left:6%;top:6%;z-index:1;width:88%;height:88%;pointer-events:none;filter:drop-shadow(0 1.5px 1px #0006)}
+.pc.w{--f:#fbfbf8;--s:#1b1b1b;--d:#1b1b1b}.pc.b{--f:#46413c;--s:#0c0b0a;--d:#f1f1f1}
+.pc use{fill:var(--f);stroke:var(--s);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.x{fill:none;stroke:var(--d)}.e{fill:var(--d);stroke:none}
+#ranks,#files{position:absolute;display:flex;color:#e8d3ae;font:600 clamp(9px,1.9vw,13px)/1 system-ui,sans-serif;pointer-events:none}
+#ranks{left:0;top:5%;bottom:5%;width:5%;flex-direction:column}#ranks span{flex:1;display:flex;align-items:center;justify-content:center}
+#files{left:5%;right:5%;bottom:0;height:5%}#files span{flex:1;display:flex;align-items:center;justify-content:center}
+.bar{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+button{font:inherit;background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--ac)}
+.panel{flex:1 1 320px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px}
+h1{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);margin:0 0 6px;font-weight:600}
+.nm{font-size:22px;font-weight:700;margin:0}.idea{color:var(--mu);margin:4px 0 0}
+.mv{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--mu);min-height:20px;word-break:break-word}
+.sg{display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin-bottom:6px}
+.sg b{font-family:ui-monospace,Menlo,monospace;min-width:58px}.sg span.n{flex:1;color:var(--mu);font-size:13px}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--bd);color:var(--mu)}
+.tag.m{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+input{width:100%;font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);margin-bottom:8px}
+#list{max-height:220px;overflow-y:auto;overflow-x:hidden}
+#list button{display:block;width:100%;text-align:left;border:0;border-radius:6px;padding:6px 8px;background:none}
+#list button:hover{background:var(--bg)}
+.note{font-size:12px;color:var(--mu);margin:0}
+.bd svg{width:12px;height:12px}.rb svg{width:15px;height:15px}
+[hidden]{display:none!important}
+.tabs{max-width:1020px;margin:0 auto;padding:14px 16px 0;display:flex;gap:8px}
+.tabs button{border-radius:99px;padding:8px 20px;font-weight:600}.tabs button.on{background:var(--ac);color:var(--acx);border-color:var(--ac)}
+.ls{display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin-bottom:8px}.ls span{flex:1}.ls small{display:block;color:var(--mu);font-size:12.5px;margin-top:2px}
+.prog{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-bottom:10px}.prog i{display:block;height:100%;width:0;background:var(--ac);transition:width .3s}
+.ex.ok{border-color:#5f9e1f}.ex.no{border-color:#d93025}
+textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,monospace;padding:8px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);margin-bottom:4px;resize:vertical}
+.acc{display:flex;gap:10px;margin:10px 0}.acc div{flex:1;background:var(--bg);border-radius:8px;padding:8px 10px}.acc small{display:block;color:var(--mu);font-size:11px}.acc b{font-size:20px}
+.rw{display:grid;grid-template-columns:30px 1fr 44px 44px;align-items:center;gap:6px;font-size:13px;padding:2px 0}.rw b{text-align:right;font-weight:600}.rw small{color:var(--mu)}.rw .rb{height:20px;min-width:24px;margin:0;font-size:11px}.rw .rb svg{width:12px;height:12px}
+#rgf{width:100%;height:60px;display:block;background:var(--bg);border-radius:8px;cursor:pointer;margin:10px 0}
+#rmv{display:flex;flex-wrap:wrap;gap:2px 3px;max-height:190px;overflow-y:auto;margin-top:10px}.mn{color:var(--mu);font-size:12px;align-self:center;margin-left:4px}
+.mvb{padding:3px 6px;border-radius:6px;border:0;background:none;font-size:13px}.mvb.on{background:var(--ac);color:var(--acx)}.mvb sup{font-weight:700;margin-left:2px}
+.sq.v::after{content:"";position:absolute;inset:0;background:#3b82f66b}
+.bd{position:absolute;right:2px;top:2px;z-index:3;min-width:18px;height:18px;padding:0 4px;border-radius:9px;display:flex;align-items:center;justify-content:center;font:700 10px/1 system-ui,sans-serif;color:#fff;box-shadow:0 1px 3px #0007}
+.rb{display:inline-flex;min-width:26px;height:26px;padding:0 7px;margin-right:8px;border-radius:13px;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;vertical-align:middle}
+.row{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;align-items:stretch}.row .sg{flex:1;width:auto;margin:0;min-width:0}
+.ex{flex-basis:100%;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;font-size:13.5px}.ex p{margin:0 0 6px}.ex p:last-child{margin:0}
+</style></head><body>
+<div class="tabs"><button id="t1" class="on">Explorer</button><button id="t2">Lessons</button><button id="t3">Review</button></div>
+<div class="app">
+ <div class="bw"><div id="frame"><div id="board"></div><div id="ranks"></div><div id="files"></div></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<g id="s-p"><circle cx="22.5" cy="13" r="5"/><path d="M17.5 21.5h10l-1 3c3 2 5.5 5.5 5.5 11.5H13.5c0-6 2.5-9.5 5.5-11.5z"/><rect x="11" y="35.5" width="23" height="4" rx="1.5"/></g>
+<g id="s-r"><path d="M15 17h15v13H15z"/><path d="M13 30h19l1.5 5.5h-22z"/><path d="M12 17V9h4.5v3h3V9h5v3h3V9H33v8z"/><rect x="11" y="35.5" width="23" height="4" rx="1.5"/></g>
+<g id="s-n"><path d="M13 36c0-7 1-11 5-15-2 0-4 1-6 3l-1.5-1.5c2-4 5-9 10.5-10.5L22 7l3 2.5c6 1.5 10 7 9.5 16-.5 4-2 7-2 11z"/><circle class="e" cx="21" cy="15" r="1.2"/><path class="x" d="M14 24l3-1.5"/><rect x="11" y="35.5" width="23" height="4" rx="1.5"/></g>
+<g id="s-b"><path d="M22.5 7.5c5 3.5 8 7 8 12 0 3-1.5 5-3.5 6.5h-9c-2-1.5-3.5-3.5-3.5-6.5 0-5 3-8.5 8-12z"/><circle cx="22.5" cy="6" r="2.2"/><path class="x" d="M20 15l5.5 5.5"/><path d="M17 26h11l2 5.5c1 2 1 3 2 4.5H13c1-1.5 1-2.5 2-4.5z"/><rect x="11" y="35.5" width="23" height="4" rx="1.5"/></g>
+<g id="s-q"><path d="M12 36L9.5 15 13 26l3-16 3.5 15 3-17 3 17 3.5-15 3 16 3.5-11L33 36z"/><circle cx="9.5" cy="13.5" r="2"/><circle cx="16" cy="8.5" r="2"/><circle cx="22.5" cy="6.5" r="2"/><circle cx="29" cy="8.5" r="2"/><circle cx="35.5" cy="13.5" r="2"/><path class="x" d="M13 31h19"/><rect x="11" y="35.5" width="23" height="4" rx="1.5"/></g>
+<g id="s-k"><path d="M22.5 17c-3-5-12-4.5-12 3 0 6 4 8 4 12.5V36h16v-3.500c0-4.5 4-6.5 4-12.5 0-7.5-9-8-12-3z"/><path d="M22.5 3.5v13.5M19 7h7"/><path class="x" d="M15 31h15"/><rect x="11" y="35.5" width="23" height="4" rx="1.5"/></g>
+</defs></svg>
+  <div class="bar"><button id="back">← Back</button><button id="fwd">Forward →</button><button id="flip">Flip board</button><button id="sty">Board style</button><button id="sbtn">Sound: on</button><button id="reset">Reset</button></div></div>
+ <div class="panel" id="ep">
+  <div class="card"><h1>Current opening</h1><p class="nm" id="nm">Starting position</p><p class="idea" id="idea">Pick a first move to begin exploring theory.</p><div class="mv" id="mv" style="margin-top:10px"></div></div>
+  <div class="card" id="rc" hidden></div>
+  <div class="card"><h1 id="sh">Best next moves</h1><div id="sg"></div><p class="note">Ranked by how central each move is to opening theory (main line first). Tap “Why?” for the reasoning and a preview on the board. A guide to book moves, not an engine evaluation.</p></div>
+  <div class="card"><h1>Browse openings</h1><input id="q" placeholder="Search: Sicilian, Najdorf, London…"><div id="list"></div></div>
+ </div>
+ <div class="panel" id="lp" hidden><div class="card" id="ll"></div><div class="card" id="lc" hidden></div>
+ </div>
+ <div class="panel" id="rp" hidden><div class="card" id="ri"><h1>Game review</h1><textarea id="rt" rows="5" placeholder="Paste a game’s PGN here…"></textarea><div class="bar"><button id="rl">Review this game</button></div><h1 style="margin-top:16px">Or load from chess.com</h1><div class="bar" style="margin-top:0"><input id="ru" placeholder="chess.com username" style="flex:1;margin:0"><button id="rf">Load my games</button></div><div id="rg" style="margin-top:8px"></div><div class="prog" style="margin-top:10px"><i id="rpb"></i></div><p class="note" id="rn">On chess.com: open a game, tap Share, choose PGN and copy it.</p></div><div class="card" id="rr" hidden></div>
+ </div>
+</div>
+<script>
+const D=`e4|King’s Pawn Opening|Takes the center and opens lines for the bishop and queen.
+e4 e5|Open Game|Symmetrical center. Rapid development and tactics.
+e4 e5 Nf3|King’s Knight Opening|Attacks e5 and develops a piece.
+e4 e5 Nf3 Nc6|Normal Defense|Black defends the e5 pawn naturally.
+e4 e5 Nf3 Nc6 Bb5|Ruy Lopez|Pressures the defender of e5. Rich, strategic middlegames.
+e4 e5 Nf3 Nc6 Bb5 a6|Morphy Defense|Asks the bishop what it wants to do.
+e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6 c3 O-O|Ruy Lopez: Closed|White prepares d4 with a big center; Black stays solid.
+e4 e5 Nf3 Nc6 Bb5 Nf6 O-O Nxe4 d4 Nd6 Bxc6 dxc6 dxe5 Nf5|Berlin Defense|The "Berlin Wall": ultra-solid and endgame-oriented.
+e4 e5 Nf3 Nc6 Bb5 f5|Schliemann Defense|Sharp counter-gambit.
+e4 e5 Nf3 Nc6 Bc4|Italian Game|Eyes f7 and develops quickly.
+e4 e5 Nf3 Nc6 Bc4 Bc5|Giuoco Piano|The "quiet game". White aims for c3 and d4.
+e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d3|Giuoco Pianissimo|Slow, maneuvering play favored at top level.
+e4 e5 Nf3 Nc6 Bc4 Nf6|Two Knights Defense|Counterattacks e4. Ng5 leads to sharp play.
+e4 e5 Nf3 Nc6 d4 exd4 Nxd4|Scotch Game|Opens the center right away.
+e4 e5 Nf3 Nf6 Nxe5 d6 Nf3 Nxe4|Petrov’s Defense|Mirror counterattack. Very solid.
+e4 e5 Nf3 d6 d4|Philidor Defense|Solid but a bit passive.
+e4 e5 f4|King’s Gambit|Romantic gambit: sacrifices a pawn for the center and open f-file.
+e4 e5 Nc3|Vienna Game|Flexible; may transpose to the King’s Gambit.
+e4 c5|Sicilian Defense|Most popular reply to 1.e4. Unbalanced, fighting positions.
+e4 c5 Nf3|Open Sicilian prep|White develops and prepares d4.
+e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6|Najdorf Variation|Flexible and ambitious. Fischer and Kasparov’s weapon.
+e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6|Dragon Variation|Fianchetto bishop on the long diagonal. Sharp attacks.
+e4 c5 Nf3 Nc6 Bb5|Rossolimo Attack|Avoids heavy theory; pressure on c6.
+e4 c5 c3|Alapin Variation|Builds a pawn center with d4.
+e4 e6 d4 d5|French Defense|Solid pawn chain; counterplay against d4.
+e4 e6 d4 d5 Nc3 Bb4|Winawer Variation|Sharp. Black gives up the bishop pair for pressure.
+e4 e6 d4 d5 e5|Advance Variation|White gains space; Black strikes at d4.
+e4 e6 d4 d5 exd5 exd5|Exchange Variation|Symmetrical and simple.
+e4 c6 d4 d5|Caro-Kann Defense|Rock-solid. Black keeps a healthy structure.
+e4 c6 d4 d5 Nc3 dxe4 Nxe4 Bf5|Classical Variation|Bishop develops before ...e6.
+e4 c6 d4 d5 e5 Bf5|Advance Variation|White gains space; Black develops the bishop outside the chain.
+e4 d5 exd5 Qxd5 Nc3 Qa5|Scandinavian Defense|Immediate challenge. Queen comes out early.
+e4 d6 d4 Nf6 Nc3 g6|Pirc Defense|Hypermodern: lets White build a center, then attacks it.
+e4 Nf6 e5 Nd5 d4 d6|Alekhine’s Defense|Provokes White’s pawns forward to attack them later.
+d4|Queen’s Pawn Opening|Controls e5 and prepares strategic play.
+d4 d5|Closed Game|Mirrors White’s center.
+d4 d5 c4|Queen’s Gambit|Offers a pawn to deflect Black’s center pawn.
+d4 d5 c4 e6 Nc3 Nf6 Bg5 Be7|Queen’s Gambit Declined|Classical, solid structure.
+d4 d5 c4 c6 Nf3 Nf6|Slav Defense|Supports d5 and keeps the light bishop free.
+d4 d5 c4 dxc4|Queen’s Gambit Accepted|Black takes the pawn; White regains it with active pieces.
+d4 d5 Nf3 Nf6 Bf4|London System|Easy-to-learn system setup with Bf4.
+d4 Nf6|Indian Defenses|Black controls the center from a distance.
+d4 Nf6 c4 e6 Nc3 Bb4|Nimzo-Indian Defense|Pins the knight to fight for e4.
+d4 Nf6 c4 g6 Nc3 Bg7 e4 d6|King’s Indian Defense|Black lets White build a center, then strikes back.
+d4 Nf6 c4 g6 Nc3 d5|Grünfeld Defense|Dynamic counterattack against the center.
+d4 Nf6 c4 e6 Nf3 b6|Queen’s Indian Defense|Fianchetto to control e4.
+d4 Nf6 Bg5|Trompowsky Attack|Disrupts Black’s setup early.
+d4 f5|Dutch Defense|Aggressive control of e4.
+c4|English Opening|Flexible flank opening; often transposes.
+c4 e5|Reversed Sicilian|Black takes the center; White plays with an extra tempo.
+c4 c5|Symmetrical English|Balanced and strategic.
+Nf3|Réti Opening|Flexible: develops first, decides on the center later.
+Nf3 d5 c4|Réti: Queen’s Gambit style|Hits d5 from the flank.`.split("\n");
+const root={c:{},o:[]},named=[];
+for(const l of D){const[m,n,i]=l.split("|");let nd=root;const path=m.split(" ");for(const s of path){if(!nd.c[s]){nd.c[s]={c:{},o:[]};nd.o.push(s)}nd=nd.c[s]}nd.name=n;nd.idea=i;named.push({n,path})}
+const g=new Chess(),G={k:"♚",q:"♛",r:"♜",b:"♝",n:"♞",p:"♟"},$=id=>document.getElementById(id);
+let flip=false,sel=null,redo=[],pvSq=null,openS=null,openPos=null;
+const R={},V={p:100,n:320,b:330,r:500,q:900,k:0},CO=["#5f9e1f","#6aa84f","#8fb35a","#e0a800","#f08a24","#d93025"],TT=["★","!","✓","?!","?","??"],LL=["Best","Excellent","Good","Inaccuracy","Mistake","Blunder"];
+function ev(c){const b=c.board(),t=c.turn();let s=0;
+ for(let r=0;r<8;r++)for(let f=0;f<8;f++){const p=b[r][f];if(!p)continue;
+  const w=p.color==="w",cf=3.5-Math.abs(f-3.5),cr=3.5-Math.abs(r-3.5),hr=w?7:0;let v=V[p.type];
+  if(p.type==="p")v+=cf*6+(w?6-r:r-1)*(cf>1.5?5:2);
+  else if(p.type==="n"||p.type==="b")v+=(cf+cr)*7+(r===hr?-12:0);
+  else if(p.type==="k")v+=r===hr?(f===6||f===2?25:0):-30;
+  s+=p.color===t?v:-v}
+ return s}
+function mat(c,col){let s=0;for(const row of c.board())for(const p of row)if(p&&p.type!=="k")s+=(p.color===col?1:-1)*V[p.type];return s}
+const order=a=>a.sort((x,y)=>(y.includes("x")*2+y.includes("+"))-(x.includes("x")*2+x.includes("+")));
+function qs(c,a,b,d){const e=ev(c);if(e>=b)return b;if(e>a)a=e;if(d<=0)return a;
+ for(const s of c.moves().filter(s=>s.includes("x"))){c.move(s);const v=-qs(c,-b,-a,d-1);c.undo();if(v>=b)return b;if(v>a)a=v}
+ return a}
+function nega(c,d,a,b,p){if(d<=0)return qs(c,a,b,3);const ms=order(c.moves());if(!ms.length)return c.in_check()?-30000+p:0;
+ for(const s of ms){c.move(s);const v=-nega(c,d-1,-b,-a,p+1);c.undo();if(v>=b)return b;if(v>a)a=v}
+ return a}
+function bm(c,d){const ms=order(c.moves());if(!ms.length)return{s:null,v:c.in_check()?-30000:0};let best=null,a=-1e5;
+ for(const s of ms){c.move(s);const v=-nega(c,d-1,-1e5,-a,1);c.undo();if(v>a||!best){a=v;best=s}}
+ return{s:best,v:a}}
+const SD=11,SFO=['setoption name Contempt value 0','setoption name UCI_AnalyseMode value true','setoption name Analysis Contempt value Off','setoption name Hash value 32'];let SF=null,Q=Promise.resolve();
+function sfGo(fen,d){return Q=Q.then(()=>new Promise(res=>{let v=0;const to=setTimeout(()=>res({t:1}),20000);SF.onmessage=l=>{if(typeof l!=="string")return;const m=l.match(/score (cp|mate) (-?\d+)/);if(m&&l.includes(" pv "))v=m[1]==="cp"?+m[2]:(m[2]>0?1:-1)*(30000-Math.abs(+m[2])*10);if(l.startsWith("bestmove")){clearTimeout(to);res({u:l.split(" ")[1],v})}};SF.postMessage("position fen "+fen);SF.postMessage("go depth "+d)}))}
+async function eng(c,d){
+ if(!SF&&typeof STOCKFISH==="function"){try{SF=STOCKFISH();SF.onmessage=()=>{};SF.postMessage("uci");SFO.forEach(o=>SF.postMessage(o))}catch(e){SF=null}}
+ if(!SF)return bm(c,d);
+ const r=await sfGo(c.fen(),SD);
+ if(r.t)return bm(c,d);
+ if(!r.u||r.u==="(none)")return{s:null,v:c.in_check()?-30000:0,e:1};
+ const x=c.move({from:r.u.slice(0,2),to:r.u.slice(2,4),promotion:r.u[4]});if(x)c.undo();
+ return{s:x?x.san:null,v:r.v,e:1}}
+async function rate(f0,san,hs){R[hs]={w:1};await new Promise(r=>setTimeout(r,40));{const c=new Chess(f0),t=c.turn(),m0=mat(c,t),b=await eng(c,3);
+ {let loss=0,rep=null,n=0;
+  if(b.s!==san){c.move(san);const o=await eng(c,2);loss=Math.max(0,b.v+o.v);if(!o.s&&c.in_checkmate())loss=0;rep=o.s;if(rep){c.move(rep);n=Math.round((m0-mat(c,t))/100)}}
+  R[hs]={c:b.s===san||loss<=5?0:loss<=20?1:loss<=50?2:loss<=120?3:loss<=250?4:5,best:b.s,rep,n,e:b.e?1:0};
+  if(g.history().join(" ")===hs)render()}}}
+function rtxt(v,san){
+ if(v.w)return `<h1>Your move</h1><p class="idea">Analysing ${san}…</p>`;
+ const d=["Matches the top choice in a quick search.","A strong move, nearly as good as the best.","A reasonable move that keeps the position healthy.","It gives up a little ground.","It noticeably weakens your position.","It throws away a lot."];
+ let h=`<h1>Your move · outside the book</h1><p class="nm" style="font-size:19px"><span class="rb" style="background:${CO[v.c]}">${TT[v.c]}</span>${san} is ${v.c===0?"the best move":"rated "+LL[v.c]}</p><p class="idea">${d[v.c]}</p>`;
+ if(v.c>0){h+=`<p class="idea">Stronger: <b>${v.best}</b>.`;
+  h+=v.rep&&v.rep.includes("#")?` After ${v.rep} you’re checkmated.`:v.n>=1&&v.rep?` After ${v.rep} you’re down about ${v.n} point${v.n>1?"s":""} of material.`:` No material is lost, but ${v.best} does more for development and the center.`;
+  h+=`</p><div class="bar"><button>Take back and play ${v.best}</button></div>`}
+ return h+`<p class="note" style="margin-top:8px">${v.e?"Rated by Stockfish 10 (depth "+SD+") running in your browser.":"Stockfish couldn’t load here, so this was rated by a basic 3-ply search."}</p>`}
+function walk(){let nd=root,nm=null;for(const s of g.history()){nd=nd.c[s];if(!nd)return{nd:null,nm};if(nd.name)nm=nd}return{nd,nm}}
+function pre(){const n=Math.floor(g.history().length/2)+1;return g.turn()==="w"?n+".":n+"…"}
+const N={p:"pawn",n:"knight",b:"bishop",r:"rook",q:"queen",k:"king"};
+function why(s,i,x){
+ const m=g.moves({verbose:true}).find(v=>v.san===s);if(!m)return"";
+ const w=m.color==="w",rel=w?+m.to[1]:9-m.to[1],fl=m.to[0],P=[],opp=sq=>{const k=g.get(sq);return k&&k.type==="n"&&k.color!==m.color};
+ if(m.flags.includes("k")||m.flags.includes("q"))P.push("Castles: the king gets safe and a rook joins the game.");
+ else if(m.piece==="p"){
+  if(m.captured)P.push("Captures a pawn to open the center and fight for space.");
+  else if("de".includes(fl)&&rel===4)P.push("Claims the center and opens lines for the bishop and queen.");
+  else if("de".includes(fl)&&rel===3)P.push("Supports the center and frees a bishop.");
+  else if(rel===4)P.push("A flank pawn that attacks the center from the side.");
+  else P.push("Gains space and prepares a pawn center.")}
+ else if(m.piece==="n")P.push(m.from[1]===(w?"1":"8")?"Develops the knight toward the center, where it controls more squares.":"Moves the knight to a more active square.");
+ else if(m.piece==="b"){
+  if(m.to===(w?"c4":"c5"))P.push("Develops the bishop and aims at "+(w?"f7":"f2")+", the weakest square in the opponent’s camp.");
+  else if(m.to===(w?"b5":"b4")&&opp(w?"c6":"c3"))P.push("Pressures the knight that guards the center.");
+  else if(m.to===(w?"g5":"g4")&&opp(w?"f6":"f3"))P.push("Develops with a pin on the knight that defends the center.");
+  else if(["g7","b7","g2","b2"].includes(m.to))P.push("Fianchettoes the bishop: long-diagonal pressure on the center.");
+  else P.push(m.from[1]===(w?"1":"8")?"Develops the bishop onto an open diagonal.":"Repositions the bishop on a more active diagonal.")}
+ else if(m.piece==="r")P.push("Activates the rook on an open or semi-open file.");
+ else if(m.piece==="q")P.push("An early queen move can be chased with tempo, so it is only worth it when theory backs it.");
+ if(m.captured&&m.piece!=="p")P.push("Captures a "+N[m.captured]+".");
+ if(s.includes("+"))P.push("Gives check, forcing a reply.");
+ const rk=i===0?"Main line: the book’s top recommendation here and a solid practical choice.":i<3?"Common alternative: fully playable, but it leads to a different structure than the main line.":"Sideline: less common. Fine to play, but it asks you to know more specific theory.";
+ return `<p><b>${rk}</b></p>`+P.map(t=>`<p>${t}</p>`).join("")+(x.name?`<p><b>Leads to ${x.name}.</b> ${x.idea||""}</p>`:"")}
+const BK="#a88865",BI='<svg viewBox="0 0 16 16"><path d="M2 3.5C4 2.5 6.5 2.5 8 3.8 9.5 2.5 12 2.5 14 3.5V12.5C12 11.5 9.5 11.5 8 12.8 6.5 11.5 4 11.5 2 12.5Z" fill="#fff"/><path d="M8 3.8V12.8" stroke="#a88865"/></svg>';
+const LS=[
+{n:'Italian Game: build fast',s:'w',d:'Scenario: your opponent mirrors your central play. Develop quickly, aim at f7 and castle early.',m:[['e4','Claim the center and free your bishop and queen.'],['e5','Black fights for the center too.'],['Nf3','Develops with tempo by attacking e5.'],['Nc6','Black defends the pawn and develops.'],['Bc4','The bishop eyes f7, the weakest square near Black’s king.'],['Bc5','Black copies you: the Giuoco Piano, or “quiet game”.'],['c3','Prepares d4 to build a big pawn center.'],['Nf6','Black counterattacks your e4 pawn.'],['d3','A solid, patient choice that guards e4 and keeps your bishop active.'],['d6','Black supports e5 and frees a bishop.'],['O-O','Castle: the king is safe and the rook joins the game.']]},
+{n:'Ruy Lopez: pressure e5',s:'w',d:'Scenario: you want to squeeze Black’s center without rushing. Go after the defender of e5.',m:[['e4','Take the center.'],['e5','Black does the same.'],['Nf3','Attacks e5.'],['Nc6','Black defends e5 with the knight.'],['Bb5','The Ruy Lopez: you pressure the knight that defends e5.'],['a6','Black asks the bishop what it wants to do.'],['Ba4','Keep the tension and the bishop on the diagonal.'],['Nf6','Black develops and hits e4.'],['O-O','Castle first. If ...Nxe4, Re1 gives you a strong initiative.'],['Be7','Black prepares to castle.'],['Re1','Protects e4 and prepares d4.'],['b5','Black gains space and attacks the bishop.'],['Bb3','The bishop stays aimed at f7.'],['d6','Black solidifies e5.'],['c3','Prepares d4 and gives the bishop a retreat square.'],['O-O','Both sides are fully developed: a classic Closed Ruy Lopez.']]},
+{n:'London System setup',s:'w',d:'Scenario: you want a solid setup that works against almost any reply, with little theory to memorise.',m:[['d4','Control e5 and start a flexible setup.'],['d5','Black claims the center too.'],['Nf3','Develops and guards e5.'],['Nf6','Black develops the knight.'],['Bf4','The London bishop: get it outside the pawn chain before playing e3.'],['e6','Black prepares to develop the bishop.'],['e3','Supports d4 and frees your other bishop.'],['Bd6','Black challenges your bishop.'],['Bg3','Keep the bishop. If Black takes it, hxg3 opens the h-file for you.'],['O-O','Black castles.'],['Bd3','Develops the last bishop toward the kingside.']]},
+{n:'Defend the Scholar’s Mate',s:'b',d:'Scenario: White rushes the queen out to threaten a four-move checkmate on f7. Stay calm and defend.',m:[['e4','White opens with the king’s pawn.'],['e5','Mirror the center and open lines for your pieces.'],['Qh5','The queen attacks e5 and eyes f7: the rush begins.'],['Nc6','Develop and defend e5 in one move.'],['Bc4','Now Qxf7# is threatened: queen and bishop both aim at f7.'],['g6','Attack the queen with a pawn and gain a tempo.'],['Qf3','The queen retreats but keeps pressure on f7.'],['Nf6','Develop. The knight also blocks the f-file, so the queen no longer hits f7.'],['Qb3','White aims at f7 a second time.'],['Qe7','Defend f7 with your queen. The rush has run out of steam.']]},
+{n:'Queen’s Gambit Declined',s:'b',d:'Scenario: White offers the c-pawn. Decline it and keep a rock-solid center.',m:[['d4','White claims the center.'],['d5','Meet the center pawn with your own.'],['c4','The Queen’s Gambit: White offers a pawn to pull your d5 pawn away.'],['e6','Decline: support d5 and open the bishop.'],['Nc3','Adds more pressure on d5.'],['Nf6','Develop and add another defender to d5.'],['Bg5','Pins your knight to increase the pressure.'],['Be7','Break the pin and prepare to castle.'],['e3','White supports the center.'],['O-O','Castle: your king is safe and the rook is ready.']]},
+{n:'Sicilian Najdorf',s:'b',d:'Scenario: White plays 1.e4 and you want winning chances, not just equality. Fight for the d4 square.',m:[['e4','White opens with the king’s pawn.'],['c5','Fight for d4 from the side: the most ambitious reply.'],['Nf3','White develops and prepares d4.'],['d6','Prepares ...Nf6 and keeps e5 under control.'],['d4','White opens the center.'],['cxd4','Trade your wing pawn for White’s center pawn.'],['Nxd4','White recaptures.'],['Nf6','Develop and attack e4.'],['Nc3','White defends e4.'],['a6','The Najdorf: stops Bb5 and Ndb5, and prepares ...e5 or ...b5.']]},
+{n:'Trap: Légal’s Mate',s:'w',d:'Scenario: Black pins your knight with ...Bg4 and thinks your queen is trapped. Spot the trick!',m:[['e4','Take the center.'],['e5','Black mirrors.'],['Nf3','Attacks e5.'],['d6','Black defends solidly with the Philidor.'],['Bc4','Eyes f7.'],['Bg4','Black pins your knight to your queen.'],['Nc3','Develop and ignore the pin. You are setting a trap.'],['g6','Black does not see the danger.'],['Nxe5','The shocking sacrifice! If Black takes the queen, you win by force.'],['Bxd1','Black grabs the queen.'],['Bxf7+','Check! The king is forced to move.'],['Ke7','The king has to step forward.'],['Nd5#','Checkmate! Two knights and a bishop trap the king.']]},
+{n:'Fool’s Mate',s:'b',pre:3,q:5,d:'Scenario: White opened with f3 and g4, which wrecked the king’s defence. Find the one-move punishment.',m:[['f3',''],['e5',''],['g4','These pawn moves have left the king exposed.'],['Qh4#','Checkmate! The f3 and g4 pawns opened the diagonal to the king.']]},
+{n:'The forgotten f7',s:'w',pre:6,q:5,d:'Scenario: you went for the early queen attack and Black just developed with Nf6. Spot what Black missed.',m:[['e4',''],['e5',''],['Qh5',''],['Nc6',''],['Bc4',''],['Nf6','Black attacked your queen with a developing move. Did they miss something?'],['Qxf7#','Checkmate! f7 was only guarded by the king, and your bishop protects the queen.']]},
+{n:'Elephant Trap',s:'b',pre:11,q:4,d:'Scenario: in the Queen’s Gambit Declined, White just grabbed a pawn on d5. It looks free… but is it?',m:[['d4',''],['d5',''],['c4',''],['e6',''],['Nc3',''],['Nf6',''],['Bg5',''],['Nbd7',''],['cxd5',''],['exd5',''],['Nxd5','White grabbed a pawn. Is the knight really safe on d5?'],['Nxd5','Take the knight. It looks like you lose your queen, but wait.'],['Bxd8','White grabs your queen.'],['Bb4+','The key zwischenzug! Check first, and White’s queen has to answer it.'],['Qd2','Forced: White has to block the check.'],['Bxd2+','Trade queens with check.'],['Kxd2','White recaptures.'],['Kxd8','You win the bishop on d8: a piece for a pawn. That is the Elephant Trap.']]},
+{n:'Fried Liver Attack',s:'w',pre:10,q:3,d:'Scenario: Black grabbed a pawn with Nxd5 instead of playing safely. Punish it with a famous sacrifice.',m:[['e4',''],['e5',''],['Nf3',''],['Nc6',''],['Bc4',''],['Nf6',''],['Ng5',''],['d5',''],['exd5',''],['Nxd5','Black grabbed a pawn. Look at the weakest square in Black’s camp.'],['Nxf7','The Fried Liver! Sacrifice the knight to drag the king out.'],['Kxf7','Black takes the knight.'],['Qf3+','Check! The queen also attacks the knight on d5.'],['Ke6','The king runs into the center.'],['Nc3','Attack the d5 knight. Black’s king is stuck in the open and you have a dangerous attack.']]}
+];
+let tab='e',L=null;
+const mv=o=>tab==='e'?play(o):tab==='l'?lmove(o):0,strip=s=>s.replace(/[+#]/g,'');
+function setTab(t){if(t===tab)return;tab=t;$('t1').classList.toggle('on',t==='e');$('t2').classList.toggle('on',t==='l');$('ep').hidden=t!=='e';$('lp').hidden=t!=='l';$('rp').hidden=t!=='r';$('t3').classList.toggle('on',t==='r');['back','fwd','reset'].forEach(k=>$(k).hidden=t!=='e');g.reset();redo=[];sel=null;pvSq=null;openS=null;flip=false;L=null;if(t==='l')lessonList();else if(t==='r'&&RV&&RV.cl)rview(RV.ply);else render()}
+function lmsg(h,c){$('lm').className='ex '+(c||'');$('lm').innerHTML=h}
+function lessonList(){L=null;g.reset();redo=[];sel=null;pvSq=null;flip=false;$('lc').hidden=true;const c=$('ll');c.hidden=false;
+ c.innerHTML='<h1>Opening lessons</h1><p class="idea" style="margin:0 0 12px">Pick a scenario. You play your side’s moves and the opponent answers automatically.</p>';
+ let sh=0;LS.forEach((l,i)=>{if(l.pre&&!sh){sh=1;c.insertAdjacentHTML('beforeend','<h1 style="margin:16px 0 6px">Find the mistake</h1><p class="idea" style="margin:0 0 10px">The opponent has just slipped. Find the best punishment.</p>')}const b=document.createElement('button');b.className='ls';b.innerHTML=`<span><b>${l.n}</b><small>${l.d}</small></span><span class="tag" style="flex:none">${l.s==='w'?'White':'Black'}</span>`;b.onclick=()=>startL(i);c.appendChild(b)});render()}
+function startL(i){const l=LS[i];g.reset();redo=[];sel=null;pvSq=null;flip=l.s==='b';
+ L={i,k:0,ok:0,miss:0,h:0,last:'',tot:l.m.filter((_,j)=>j>=(l.pre||0)&&j%2===(l.s==='w'?0:1)).length};if(l.pre){for(let j=0;j<l.pre;j++)g.move(l.m[j][0]);L.k=l.pre;L.mq=g.history().join(' ');L.mc=l.q}
+ $('ll').hidden=true;const c=$('lc');c.hidden=false;
+ c.innerHTML=`<h1>${l.n} · You play ${l.s==='w'?'White':'Black'}</h1><p class="idea" style="margin:0 0 10px">${l.d}</p><div class="prog"><i id="pb"></i></div><div class="ex" id="lm"></div><div class="bar" style="margin-top:10px"><button id="lh">Hint</button><button id="lw">Show me</button><button id="lr">Restart</button><button id="la">All lessons</button></div>`;
+ $('lh').onclick=lhint;$('lw').onclick=lshow;$('lr').onclick=()=>startL(i);$('la').onclick=lessonList;
+ const lq=g.history().slice(-1)[0];lmsg(l.pre?`<p><b>The opponent played ${lq}${TT[l.q]}</b> ${l.m[l.pre-1][1]}</p><p><b>Your turn.</b> Find the best punishment.</p>`:(l.s==='w'?'<p><b>Your turn.</b> Click a piece, then the square to move it to.</p>':'<p>Watch White’s first move, then it’s your turn.</p>'));render();adv()}
+function adv(){const l=LS[L.i],m=l.m[L.k];$('pb').style.width=(L.k/l.m.length*100)+'%';
+ if(!m)return fin();
+ if(g.turn()!==l.s){const my=L;setTimeout(()=>{if(L!==my)return;const r=g.move(m[0]);if(!r)return;snd(kd(r));L.k++;lmsg(L.last+`<p><b>Opponent plays ${r.san}.</b> ${m[1]}</p>`+(L.k<l.m.length?'<p><b>Your turn.</b></p>':''));render();adv()},750)}}
+function lok(r,m){snd(kd(r));L.k++;if(!L.miss)L.ok++;L.miss=0;L.h=0;sel=null;pvSq=null;L.last=`<p><b>${r.san} ✓</b> ${m[1]}</p>`;lmsg(L.last,'ok');render();adv()}
+function lmove(o){if(!L)return;const l=LS[L.i],m=l.m[L.k];if(!m||g.turn()!==l.s)return;
+ const r=g.move(o);if(!r)return;
+ if(strip(r.san)===strip(m[0]))lok(r,m);
+ else{const s=r.san;g.undo();L.miss=1;sel=null;lmsg(L.last+`<p><b>${s} isn’t the idea here.</b> Try again, or tap Hint.</p>`,'no');board()}}
+function lhint(){if(!L)return;const l=LS[L.i],m=l.m[L.k];if(!m||g.turn()!==l.s)return;
+ const v=g.moves({verbose:true}).find(x=>strip(x.san)===strip(m[0]));if(!v)return;
+ L.miss=1;L.h++;pvSq=L.h>1?[v.from,v.to]:[v.from,v.from];board();
+ lmsg(L.last+`<p><b>Hint:</b> ${L.h>1?'move the highlighted piece to the second highlighted square.':'the piece to move is highlighted on the board. Where does it belong?'}</p>`)}
+function lshow(){if(!L)return;const l=LS[L.i],m=l.m[L.k];if(!m||g.turn()!==l.s)return;L.miss=1;const r=g.move(m[0]);if(r)lok(r,m)}
+function fin(){$('pb').style.width='100%';$('lm').className='ex ok';
+ $('lm').innerHTML=L.last+`<p><b>Lesson complete!</b> You found ${L.ok} of ${L.tot} moves on the first try.</p><div class="bar"><button id="ln">Next lesson</button><button id="lx">Open in Explorer</button></div>`;
+ $('ln').onclick=()=>L.i+1<LS.length?startL(L.i+1):lessonList();
+ $('lx').onclick=()=>{const h=g.history();setTab('e');h.forEach(s=>g.move(s));render()}}
+let RV=null;
+const wp=c=>50+50*(2/(1+Math.exp(-0.00368208*c))-1),SY=['Book','Best','Excellent','Good','Inaccuracy','Mistake','Blunder'];
+const fe=v=>Math.abs(v)>=29000?(v<0?'-':'')+'M'+Math.round((30000-Math.abs(v))/10):(v>0?'+':'')+(v/100).toFixed(1);
+function rmsg(t,p){$('rn').textContent=t;$('rpb').style.width=(p||0)+'%'}
+async function fetchG(){const u=$('ru').value.trim().toLowerCase();if(!u)return;rmsg('Loading games…');
+ try{const a=await(await fetch(`https://api.chess.com/pub/player/${u}/games/archives`)).json();if(!a.archives||!a.archives.length)throw 0;
+  const d=await(await fetch(a.archives[a.archives.length-1])).json(),gs=d.games.filter(x=>x.pgn).slice(-10).reverse(),box=$('rg');box.innerHTML='';
+  gs.forEach(x=>{const b=document.createElement('button');b.className='ls';const r=x.white.result==='win'?'1-0':x.black.result==='win'?'0-1':'½-½';b.innerHTML=`<span><b>${x.white.username} vs ${x.black.username}</b><small>${r} · ${x.time_class} · ${new Date(x.end_time*1000).toLocaleDateString()}</small></span>`;b.onclick=()=>{$('rt').value=x.pgn;loadPGN()};box.appendChild(b)});
+  rmsg(gs.length?'Pick a game to review.':'No games found this month.')}
+ catch(e){rmsg('Couldn’t load games from chess.com here. This only works on your own hosted copy. You can always paste a PGN instead.')}}
+function loadPGN(){const t=$('rt').value.trim();if(!t)return;const c=new Chess();
+ if(!c.load_pgn(t,{sloppy:true})||!c.history().length){rmsg('Couldn’t read that PGN. On chess.com use Share, then PGN, then copy.');return}
+ const sans=c.history(),uci=c.history({verbose:true}).map(m=>m.from+m.to+(m.promotion||'')),F=[],d=new Chess();F.push(d.fen());sans.forEach(s=>{d.move(s);F.push(d.fen())});
+ RV={h:c.header(),sans,uci,F,N:sans.length,ply:0,ev:[]};
+ flip=!!($('ru').value&&RV.h.Black&&$('ru').value.trim().toLowerCase()===RV.h.Black.toLowerCase());
+ $('rr').hidden=true;g.reset();sel=null;pvSq=null;render();analyse()}
+async function analyse(){const R0=RV;
+ if(!SF&&typeof STOCKFISH==='function'){try{SF=STOCKFISH();SF.onmessage=()=>{};SF.postMessage('uci');SFO.forEach(o=>SF.postMessage(o))}catch(e){SF=null}}
+ if(!SF){rmsg('Stockfish couldn’t load, so the review isn’t available here.');return}
+ for(let i=0;i<=R0.N;i++){if(RV!==R0)return;rmsg(`Analysing position ${i} of ${R0.N}… this takes a minute or so.`,i/R0.N*100);
+  const c=new Chess(R0.F[i]);let e;
+  if(c.in_checkmate())e={u:null,v:-30000};else if(c.in_draw())e={u:null,v:0};else{e=await sfGo(R0.F[i],12);if(e.t)e={u:null,v:0}}
+  R0.ev.push(e)}
+ if(RV===R0)finish()}
+function finish(){const V=RV;V.cl=[];V.bs=[];V.d=[];V.cnt={w:Array(7).fill(0),b:Array(7).fill(0)};V.ac={w:[],b:[]};let nd=root;
+ for(let i=1;i<=V.N;i++){nd=nd&&nd.c[strip(V.sans[i-1])];const b=V.ev[i-1],a=V.ev[i],d=Math.max(0,wp(b.v)-wp(-a.v)),bk=!!nd;
+  const k=bk?-1:b.u===V.uci[i-1]?0:d<2?1:d<6?2:d<12?3:d<20?4:5;let bs='';
+  if(b.u){try{const m=new Chess(V.F[i-1]).move({from:b.u.slice(0,2),to:b.u.slice(2,4),promotion:b.u[4]});bs=m?m.san:''}catch(e){}}
+  V.cl.push(k);V.bs.push(bs);V.d.push(d);const s=i%2?'w':'b';V.cnt[s][k+1]++;
+  if(!bk){V.ac[s].push(Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*d)-3.1669)));R[V.sans.slice(0,i).join(' ')]={c:k,best:bs,rep:null,n:0,e:1}}}
+ const A=s=>V.ac[s].length?(V.ac[s].reduce((x,y)=>x+y,0)/V.ac[s].length).toFixed(1)+'%':'–';
+ const rows=[6,5,4,3,2,1,0].map(k=>`<div class="rw"><span class="rb" style="background:${k?CO[k-1]:BK}">${k?TT[k-1]:BI}</span><span>${SY[k]}</span><b>${V.cnt.w[k]}</b><b>${V.cnt.b[k]}</b></div>`).join('');
+ const pts=V.ev.map((e,i)=>(i/V.N*300).toFixed(1)+','+(60-wp(i%2?-e.v:e.v)*.6).toFixed(1)).join(' ');
+ const mvs=V.sans.map((s,i)=>`${i%2?'':`<span class="mn">${i/2+1}.</span>`}<button class="mvb" data-p="${i+1}">${s}${V.cl[i]>=0?`<sup style="color:${CO[V.cl[i]]}">${TT[V.cl[i]]}</sup>`:''}</button>`).join('');
+ const card=$('rr');card.hidden=false;
+ card.innerHTML=`<h1>Review</h1><p class="nm" style="font-size:18px">${V.h.White||'White'} vs ${V.h.Black||'Black'}</p><p class="idea" style="margin:2px 0 0">${V.h.Result||''}</p><div class="acc"><div><small>White accuracy</small><b>${A('w')}</b></div><div><small>Black accuracy</small><b>${A('b')}</b></div></div><div class="rw"><span></span><small></small><small style="text-align:right">White</small><small style="text-align:right">Black</small></div>${rows}<svg id="rgf" viewBox="0 0 300 60" preserveAspectRatio="none"><line x1="0" x2="300" y1="30" y2="30" stroke="var(--bd)" stroke-dasharray="3"/><polyline points="${pts}" fill="none" stroke="var(--ac)" stroke-width="1.5" vector-effect="non-scaling-stroke"/><line id="rmk" x1="0" x2="0" y1="0" y2="60" stroke="var(--tx)" stroke-width="1" vector-effect="non-scaling-stroke"/></svg><div class="ex" id="rcur"></div><div class="bar" style="margin-top:10px"><button id="r0">«</button><button id="r1">‹</button><button id="r2">›</button><button id="r3">»</button></div><div id="rmv">${mvs}</div>`;
+ $('r0').onclick=()=>rview(0);$('r1').onclick=()=>rview(Math.max(0,V.ply-1));$('r2').onclick=()=>rview(Math.min(V.N,V.ply+1));$('r3').onclick=()=>rview(V.N);
+ $('rmv').onclick=e=>{const b=e.target.closest('[data-p]');if(b)rview(+b.dataset.p)};
+ $('rgf').onclick=e=>{const r=$('rgf').getBoundingClientRect();rview(Math.round((e.clientX-r.left)/r.width*V.N))};
+ rmsg('Review ready. Tap a move or use the arrows.',100);rview(0)}
+function rview(p){const V=RV;if(!V||!V.cl)return;p=Math.max(0,Math.min(V.N,p));let r=null;g.reset();for(let i=0;i<p;i++)r=g.move(V.sans[i]);const fw=p>V.ply;V.ply=p;sel=null;pvSq=null;render();if(r&&fw)snd(kd(r));
+ document.querySelectorAll('#rmv [data-p]').forEach(b=>b.classList.toggle('on',+b.dataset.p===p));
+ const x=(p/V.N*300).toFixed(1);$('rmk').setAttribute('x1',x);$('rmk').setAttribute('x2',x);rcur()}
+function rcur(){const V=RV,p=V.ply,bx=$('rcur');
+ if(!p){bx.className='ex';bx.style.borderColor='';bx.innerHTML='<p><b>Starting position.</b> Step through the game with the arrows or tap a move.</p>';return}
+ const c=V.cl[p-1],s=V.sans[p-1],e=V.ev[p],n=Math.ceil(p/2)+(p%2?'.':'…');
+ let h=`<p><b>${n} ${s}</b> · ${c<0?'Book move':SY[c+1]} · eval ${fe(p%2?-e.v:e.v)}</p>`;
+ if(c<0){const m=walk().nm;h+=`<p>${m?'You’re in '+m.name+' theory.':'Known opening theory.'}</p>`}
+ else if(c===0)h+='<p>This was the engine’s top choice.</p>';
+ else if(c<3)h+=`<p>Close to best. The engine slightly preferred <b>${V.bs[p-1]}</b>.</p>`;
+ else h+=`<p>This cost about ${Math.round(V.d[p-1])}% of the winning chances. The engine preferred <b>${V.bs[p-1]}</b>.</p><div class="bar"><button id="rbm">Show ${V.bs[p-1]} on the board</button></div>`;
+ bx.className='ex';bx.style.borderColor=c<0?BK:CO[c];bx.innerHTML=h;
+ const bb=$('rbm');if(bb)bb.onclick=()=>{const u=V.ev[p-1].u;rview(p-1);pvSq=[u.slice(0,2),u.slice(2,4)];board()}}
+let AC=null,MG=null,muted=false;
+function noise(d){const n=AC.sampleRate*d|0,b=AC.createBuffer(1,n,AC.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;return b}
+function tock(t,g,f,cap){
+ const s=AC.createBufferSource();s.buffer=noise(.1);
+ const bp=AC.createBiquadFilter();bp.type="bandpass";bp.frequency.value=f;bp.Q.value=cap?.9:1.5;
+ const ga=AC.createGain();ga.gain.setValueAtTime(g*1.6,t);ga.gain.exponentialRampToValueAtTime(.001,t+(cap?.1:.06));
+ s.connect(bp);bp.connect(ga);ga.connect(MG);s.start(t);
+ const o=AC.createOscillator(),og=AC.createGain();o.type="sine";o.frequency.setValueAtTime(cap?230:180,t);o.frequency.exponentialRampToValueAtTime(70,t+.08);
+ og.gain.setValueAtTime(g*.7,t);og.gain.exponentialRampToValueAtTime(.001,t+.11);o.connect(og);og.connect(MG);o.start(t);o.stop(t+.13)}
+function ping(t,f){const o=AC.createOscillator(),og=AC.createGain();o.type="sine";o.frequency.value=f;og.gain.setValueAtTime(.0001,t);og.gain.exponentialRampToValueAtTime(.16,t+.01);og.gain.exponentialRampToValueAtTime(.001,t+.35);o.connect(og);og.connect(MG);o.start(t);o.stop(t+.4)}
+function snd(k){if(muted)return;try{
+ if(!AC){AC=new(window.AudioContext||window.webkitAudioContext)();MG=AC.createGain();MG.gain.value=.8;const cp=AC.createDynamicsCompressor();MG.connect(cp);cp.connect(AC.destination)}
+ if(AC.state==="suspended")AC.resume();
+ const t=AC.currentTime+.01;
+ if(k==="c"){tock(t,1,1000);tock(t+.12,1,850)}else if(k==="x")tock(t,1.4,1300,1);else tock(t,1,950);
+ if(k==="+")ping(t+.06,880);
+ if(k==="#"){ping(t+.1,523);ping(t+.3,392)}
+}catch(e){}}
+const kd=r=>r.san.includes("#")?"#":r.san.includes("+")?"+":/[kq]/.test(r.flags)?"c":/[ce]/.test(r.flags)?"x":"m";
+function play(s){const f0=g.fen(),r=g.move(s);if(r){redo=[];sel=null;const hs=g.history().join(" ");if(!walk().nd&&!R[hs])rate(f0,r.san,hs);render();snd(kd(r))}return r}
+function board(){
+ const b=g.board(),h=g.history({verbose:true}),lm=h.length?h[h.length-1]:null,rb=lm&&R[h.map(x=>x.san).join(" ")],mq=lm&&tab==='l'&&L&&L.mq===h.map(x=>x.san).join(' ')?L.mc:-1,bk=lm&&!rb&&mq<0&&walk().nd;
+ const targets=sel?g.moves({square:sel,verbose:true}):[];
+ let out="";
+ for(let r=0;r<8;r++)for(let f=0;f<8;f++){
+  const rr=flip?7-r:r,ff=flip?7-f:f,sq="abcdefgh"[ff]+(8-rr),p=b[rr][ff];
+  const t=targets.find(m=>m.to===sq);
+  const cl=["sq",(rr+ff)%2?"d":"",(lm&&(lm.from===sq||lm.to===sq))||sel===sq?"l":"",t?(p?"t tc":"t"):"",pvSq&&pvSq.includes(sq)?"v":""].join(" ");
+  out+=`<div class="${cl}" data-sq="${sq}">${p?`<svg class="pc ${p.color}" viewBox="0 0 45 45"><use href="#s-${p.type}"/></svg>`:""}${rb&&!rb.w&&lm.to===sq?`<span class="bd" style="background:${CO[rb.c]}">${TT[rb.c]}</span>`:""}${bk&&lm.to===sq?`<span class="bd" style="background:${BK}">${BI}</span>`:""}${mq>=0&&lm.to===sq?`<span class="bd" style="background:${CO[mq]}">${TT[mq]}</span>`:""}</div>`}
+ $("board").innerHTML=out;let RK="",FL="";for(let i=0;i<8;i++){RK+=`<span>${flip?i+1:8-i}</span>`;FL+=`<span>${"abcdefgh"[flip?7-i:i]}</span>`}$("ranks").innerHTML=RK;$("files").innerHTML=FL}
+function render(){
+ const H=g.history(),hs=H.join(" "),op=openPos===hs?openS:null,pm=op&&g.moves({verbose:true}).find(m=>m.san===op);if(tab==='e')pvSq=pm?[pm.from,pm.to]:null;
+ board();
+ const{nd,nm}=walk();const rv=R[hs],rc=$("rc");const th=!rv&&H.length&&nd&&nm;rc.hidden=!(rv||th);if(th)rc.innerHTML=`<h1>Your move · theory</h1><p class="nm" style="font-size:19px"><span class="rb" style="background:${BK}">${BI}</span>${H[H.length-1]} is a theory move</p><p class="idea">You’re following known ${nm.name} theory. The suggestions below show where it goes next.</p>`;if(rv){rc.innerHTML=rtxt(rv,H[H.length-1]);const tb=rc.querySelector("button");if(tb)tb.onclick=()=>{g.undo();play(rv.best)}}
+ $("nm").textContent=nm?nm.name:(H.length?"Out of book":"Starting position");
+ $("idea").textContent=nm?nm.idea:(H.length?"":"Pick a first move to begin exploring theory.");
+ let mv="";H.forEach((s,i)=>{mv+=(i%2?"":(i/2+1)+". ")+s+" "});$("mv").textContent=mv;
+ const box=$("sg");box.innerHTML="";
+ $("sh").textContent=g.turn()==="w"?"Best moves for White":"Best moves for Black";
+ if(!nd){box.innerHTML='<p class="idea">This position has left my opening book. Step back to return to known theory.</p>';const bt=document.createElement("button");bt.textContent="Back to book";bt.onclick=()=>{while(!walk().nd)g.undo();sel=null;render()};box.appendChild(bt)}
+ else if(!nd.o.length){box.innerHTML='<p class="idea">Theory in this book ends here. Keep developing, fight for the center and castle.</p>'}
+ else nd.o.forEach((s,i)=>{
+  let x=nd.c[s];while(!x.name&&x.o.length)x=x.c[x.o[0]];
+  const row=document.createElement("div");row.className="row";const bt=document.createElement("button");bt.className="sg";
+  bt.innerHTML=`<b>${pre()}${s}</b><span class="n">${x.name||""}</span><span class="tag ${i?"":"m"}">${i===0?"Main line":i<3?"Common":"Sideline"}</span>`;
+  bt.onclick=()=>play(s);const wb=document.createElement("button");wb.textContent=op===s?"Hide":"Why?";wb.onclick=()=>{openS=op===s?null:s;openPos=hs;render()};row.append(bt,wb);if(op===s){const ex=document.createElement("div");ex.className="ex";ex.innerHTML=why(s,i,x);row.appendChild(ex)}box.appendChild(row)});
+ if(g.game_over()){box.innerHTML='<p class="idea">Game over.</p>'}}
+$("board").onclick=e=>{
+ const el=e.target.closest(".sq");if(!el)return;const sq=el.dataset.sq;
+ if(sel){const m=g.moves({square:sel,verbose:true}).find(m=>m.to===sq);if(m){mv({from:sel,to:sq,promotion:"q"});return}}
+ const p=g.get(sq);sel=p&&p.color===g.turn()?sq:null;board()};
+$("back").onclick=()=>{const m=g.undo();if(m){redo.push(m.san);sel=null;render();snd("m")}};
+$("fwd").onclick=()=>{const s=redo.pop();if(s){const r=g.move(s);sel=null;render();if(r)snd(kd(r))}};
+$("reset").onclick=()=>{g.reset();redo=[];sel=null;render()};
+$("flip").onclick=()=>{flip=!flip;board()};
+$("sty").onclick=()=>$("frame").classList.toggle("green");
+$("sbtn").onclick=e=>{muted=!muted;e.target.textContent=muted?"Sound: off":"Sound: on";snd("m")};
+function list(){const q=$("q").value.toLowerCase();$("list").innerHTML="";
+ named.filter(o=>o.n.toLowerCase().includes(q)).forEach(o=>{const b=document.createElement("button");b.textContent=o.n;b.title=o.path.join(" ");
+  b.onclick=()=>{g.reset();o.path.forEach(s=>g.move(s));redo=[];sel=null;render();snd("m")};$("list").appendChild(b)})}
+$("q").oninput=list;list();$("t1").onclick=()=>setTab('e');$("t2").onclick=()=>setTab('l');$("t3").onclick=()=>setTab('r');$("rl").onclick=loadPGN;$("rf").onclick=fetchG;
+document.onkeydown=e=>{if(tab!=='r'||!RV||!RV.cl||/TEXTAREA|INPUT/.test(e.target.tagName))return;if(e.key==='ArrowRight'){e.preventDefault();rview(Math.min(RV.N,RV.ply+1))}if(e.key==='ArrowLeft'){e.preventDefault();rview(Math.max(0,RV.ply-1))}};render();
+</script></body></html>
