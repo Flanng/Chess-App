@@ -57,6 +57,7 @@ textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,monospace;padding:8px 10px;
 #rgf{width:100%;height:60px;display:block;background:var(--bg);border-radius:8px;cursor:pointer;margin:10px 0}
 #rmv{display:flex;flex-wrap:wrap;gap:2px 3px;max-height:190px;overflow-y:auto;margin-top:10px}.mn{color:var(--mu);font-size:12px;align-self:center;margin-left:4px}
 .mvb{padding:3px 6px;border-radius:6px;border:0;background:none;font-size:13px}.mvb.on{background:var(--ac);color:var(--acx)}.mvb sup{font-weight:700;margin-left:2px}
+.nv{display:flex;gap:8px;margin-top:10px}.nv button{flex:1;font-size:20px;line-height:1;padding:10px 0}
 .sq.v::after{content:"";position:absolute;inset:0;background:#3b82f66b}
 .bd{position:absolute;right:2px;top:2px;z-index:3;min-width:18px;height:18px;padding:0 4px;border-radius:9px;display:flex;align-items:center;justify-content:center;font:700 10px/1 system-ui,sans-serif;color:#fff;box-shadow:0 1px 3px #0007}
 .rb{display:inline-flex;min-width:26px;height:26px;padding:0 7px;margin-right:8px;border-radius:13px;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;vertical-align:middle}
@@ -74,6 +75,7 @@ textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,monospace;padding:8px 10px;
 <g id="s-q"><path d="M12 36L9.5 15 13 26l3-16 3.5 15 3-17 3 17 3.5-15 3 16 3.5-11L33 36z"/><circle cx="9.5" cy="13.5" r="2"/><circle cx="16" cy="8.5" r="2"/><circle cx="22.5" cy="6.5" r="2"/><circle cx="29" cy="8.5" r="2"/><circle cx="35.5" cy="13.5" r="2"/><path class="x" d="M13 31h19"/><rect x="11" y="35.5" width="23" height="4" rx="1.5"/></g>
 <g id="s-k"><path d="M22.5 17c-3-5-12-4.5-12 3 0 6 4 8 4 12.5V36h16v-3.500c0-4.5 4-6.5 4-12.5 0-7.5-9-8-12-3z"/><path d="M22.5 3.5v13.5M19 7h7"/><path class="x" d="M15 31h15"/><rect x="11" y="35.5" width="23" height="4" rx="1.5"/></g>
 </defs></svg>
+  <div id="rnav" hidden><div class="nv"><button id="r0" title="First move">«</button><button id="r1" title="Previous move">‹</button><button id="r2" title="Next move">›</button><button id="r3" title="Last move">»</button></div><div class="ex" id="rcur" style="margin-top:10px"></div></div>
   <div class="bar"><button id="back">← Back</button><button id="fwd">Forward →</button><button id="flip">Flip board</button><button id="sty">Board style</button><button id="sbtn">Sound: on</button><button id="reset">Reset</button></div></div>
  <div class="panel" id="ep">
   <div class="card"><h1>Current opening</h1><p class="nm" id="nm">Starting position</p><p class="idea" id="idea">Pick a first move to begin exploring theory.</p><div class="mv" id="mv" style="margin-top:10px"></div></div>
@@ -229,7 +231,7 @@ const LS=[
 ];
 let tab='e',L=null;
 const mv=o=>tab==='e'?play(o):tab==='l'?lmove(o):0,strip=s=>s.replace(/[+#]/g,'');
-function setTab(t){if(t===tab)return;tab=t;$('t1').classList.toggle('on',t==='e');$('t2').classList.toggle('on',t==='l');$('ep').hidden=t!=='e';$('lp').hidden=t!=='l';$('rp').hidden=t!=='r';$('t3').classList.toggle('on',t==='r');['back','fwd','reset'].forEach(k=>$(k).hidden=t!=='e');g.reset();redo=[];sel=null;pvSq=null;openS=null;flip=false;L=null;if(t==='l')lessonList();else if(t==='r'&&RV&&RV.cl)rview(RV.ply);else render()}
+function setTab(t){if(t===tab)return;tab=t;$('t1').classList.toggle('on',t==='e');$('t2').classList.toggle('on',t==='l');$('ep').hidden=t!=='e';$('lp').hidden=t!=='l';$('rp').hidden=t!=='r';$('rnav').hidden=!(t==='r'&&RV&&RV.cl);$('t3').classList.toggle('on',t==='r');['back','fwd','reset'].forEach(k=>$(k).hidden=t!=='e');g.reset();redo=[];sel=null;pvSq=null;openS=null;flip=false;L=null;if(t==='l')lessonList();else if(t==='r'&&RV&&RV.cl)rview(RV.ply);else render()}
 function lmsg(h,c){$('lm').className='ex '+(c||'');$('lm').innerHTML=h}
 function lessonList(){L=null;g.reset();redo=[];sel=null;pvSq=null;flip=false;$('lc').hidden=true;const c=$('ll');c.hidden=false;
  c.innerHTML='<h1>Opening lessons</h1><p class="idea" style="margin:0 0 12px">Pick a scenario. You play your side’s moves and the opponent answers automatically.</p>';
@@ -272,7 +274,7 @@ function loadPGN(){const t=$('rt').value.trim();if(!t)return;const c=new Chess()
  const sans=c.history(),uci=c.history({verbose:true}).map(m=>m.from+m.to+(m.promotion||'')),F=[],d=new Chess();F.push(d.fen());sans.forEach(s=>{d.move(s);F.push(d.fen())});
  RV={h:c.header(),sans,uci,F,N:sans.length,ply:0,ev:[]};
  flip=!!($('ru').value&&RV.h.Black&&$('ru').value.trim().toLowerCase()===RV.h.Black.toLowerCase());
- $('rr').hidden=true;g.reset();sel=null;pvSq=null;render();analyse()}
+ $('rr').hidden=true;$('rnav').hidden=true;g.reset();sel=null;pvSq=null;render();analyse()}
 async function analyse(){const R0=RV;
  if(!SF&&typeof STOCKFISH==='function'){try{SF=STOCKFISH();SF.onmessage=()=>{};SF.postMessage('uci');SFO.forEach(o=>SF.postMessage(o))}catch(e){SF=null}}
  if(!SF){rmsg('Stockfish couldn’t load, so the review isn’t available here.');return}
@@ -292,11 +294,11 @@ function finish(){const V=RV;V.cl=[];V.bs=[];V.d=[];V.cnt={w:Array(7).fill(0),b:
  const pts=V.ev.map((e,i)=>(i/V.N*300).toFixed(1)+','+(60-wp(i%2?-e.v:e.v)*.6).toFixed(1)).join(' ');
  const mvs=V.sans.map((s,i)=>`${i%2?'':`<span class="mn">${i/2+1}.</span>`}<button class="mvb" data-p="${i+1}">${s}${V.cl[i]>=0?`<sup style="color:${CO[V.cl[i]]}">${TT[V.cl[i]]}</sup>`:''}</button>`).join('');
  const card=$('rr');card.hidden=false;
- card.innerHTML=`<h1>Review</h1><p class="nm" style="font-size:18px">${V.h.White||'White'} vs ${V.h.Black||'Black'}</p><p class="idea" style="margin:2px 0 0">${V.h.Result||''}</p><div class="acc"><div><small>White accuracy</small><b>${A('w')}</b></div><div><small>Black accuracy</small><b>${A('b')}</b></div></div><div class="rw"><span></span><small></small><small style="text-align:right">White</small><small style="text-align:right">Black</small></div>${rows}<svg id="rgf" viewBox="0 0 300 60" preserveAspectRatio="none"><line x1="0" x2="300" y1="30" y2="30" stroke="var(--bd)" stroke-dasharray="3"/><polyline points="${pts}" fill="none" stroke="var(--ac)" stroke-width="1.5" vector-effect="non-scaling-stroke"/><line id="rmk" x1="0" x2="0" y1="0" y2="60" stroke="var(--tx)" stroke-width="1" vector-effect="non-scaling-stroke"/></svg><div class="ex" id="rcur"></div><div class="bar" style="margin-top:10px"><button id="r0">«</button><button id="r1">‹</button><button id="r2">›</button><button id="r3">»</button></div><div id="rmv">${mvs}</div>`;
+ card.innerHTML=`<h1>Review</h1><p class="nm" style="font-size:18px">${V.h.White||'White'} vs ${V.h.Black||'Black'}</p><p class="idea" style="margin:2px 0 0">${V.h.Result||''}</p><div class="acc"><div><small>White accuracy</small><b>${A('w')}</b></div><div><small>Black accuracy</small><b>${A('b')}</b></div></div><div class="rw"><span></span><small></small><small style="text-align:right">White</small><small style="text-align:right">Black</small></div>${rows}<svg id="rgf" viewBox="0 0 300 60" preserveAspectRatio="none"><line x1="0" x2="300" y1="30" y2="30" stroke="var(--bd)" stroke-dasharray="3"/><polyline points="${pts}" fill="none" stroke="var(--ac)" stroke-width="1.5" vector-effect="non-scaling-stroke"/><line id="rmk" x1="0" x2="0" y1="0" y2="60" stroke="var(--tx)" stroke-width="1" vector-effect="non-scaling-stroke"/></svg><div id="rmv">${mvs}</div>`;
  $('r0').onclick=()=>rview(0);$('r1').onclick=()=>rview(Math.max(0,V.ply-1));$('r2').onclick=()=>rview(Math.min(V.N,V.ply+1));$('r3').onclick=()=>rview(V.N);
  $('rmv').onclick=e=>{const b=e.target.closest('[data-p]');if(b)rview(+b.dataset.p)};
  $('rgf').onclick=e=>{const r=$('rgf').getBoundingClientRect();rview(Math.round((e.clientX-r.left)/r.width*V.N))};
- rmsg('Review ready. Tap a move or use the arrows.',100);rview(0)}
+ $('rnav').hidden=tab!=='r';rmsg('Review ready. Tap a move or use the arrows.',100);rview(0)}
 function rview(p){const V=RV;if(!V||!V.cl)return;p=Math.max(0,Math.min(V.N,p));let r=null;g.reset();for(let i=0;i<p;i++)r=g.move(V.sans[i]);const fw=p>V.ply;V.ply=p;sel=null;pvSq=null;render();if(r&&fw)snd(kd(r));
  document.querySelectorAll('#rmv [data-p]').forEach(b=>b.classList.toggle('on',+b.dataset.p===p));
  const x=(p/V.N*300).toFixed(1);$('rmk').setAttribute('x1',x);$('rmk').setAttribute('x2',x);rcur()}
