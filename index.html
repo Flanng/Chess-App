@@ -53,6 +53,7 @@ input{width:100%;font:inherit;padding:8px 10px;border-radius:8px;border:1px soli
 .ex.ok{border-color:#5f9e1f}.ex.no{border-color:#d93025}
 textarea{width:100%;font:12px/1.4 ui-monospace,Menlo,monospace;padding:8px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);margin-bottom:4px;resize:vertical}
 .acc{display:flex;gap:10px;margin:10px 0}.acc div{flex:1;background:var(--bg);border-radius:8px;padding:8px 10px}.acc small{display:block;color:var(--mu);font-size:11px}.acc b{font-size:20px}
+.acc .el{margin-top:4px;font-size:12px;color:var(--tx)}.acc .ev{font-weight:700}
 .rw{display:grid;grid-template-columns:30px 1fr 44px 44px;align-items:center;gap:6px;font-size:13px;padding:2px 0}.rw b{text-align:right;font-weight:600}.rw small{color:var(--mu)}.rw .rb{height:20px;min-width:24px;margin:0;font-size:11px}.rw .rb svg{width:12px;height:12px}
 #rgf{width:100%;height:60px;display:block;background:var(--bg);border-radius:8px;cursor:pointer;margin:10px 0}
 #rmv{display:flex;flex-wrap:wrap;gap:2px 3px;max-height:190px;overflow-y:auto;margin-top:10px}.mn{color:var(--mu);font-size:12px;align-self:center;margin-left:4px}
@@ -263,6 +264,8 @@ function fin(){$('pb').style.width='100%';$('lm').className='ex ok';
  $('lx').onclick=()=>{const h=g.history();setTab('e');h.forEach(s=>g.move(s));render()}}
 let RV=null;
 const wp=c=>50+50*(2/(1+Math.exp(-0.00368208*c))-1),SY=['Book','Best','Excellent','Good','Inaccuracy','Mistake','Blunder'];
+const cc=x=>Math.max(-1000,Math.min(1000,x));
+function elo(V,s){const a=V.cp[s];if(a.length<8)return 0;return Math.round(Math.max(400,Math.min(2800,3100*Math.exp(-.01*a.reduce((x,y)=>x+y,0)/a.length)))/50)*50}
 const fe=v=>Math.abs(v)>=29000?(v<0?'-':'')+'M'+Math.round((30000-Math.abs(v))/10):(v>0?'+':'')+(v/100).toFixed(1);
 function rmsg(t,p){$('rn').textContent=t;$('rpb').style.width=(p||0)+'%'}
 async function fetchG(){const u=$('ru').value.trim().toLowerCase();if(!u)return;rmsg('Loading games…');
@@ -285,18 +288,19 @@ async function analyse(){const R0=RV;
   if(c.in_checkmate())e={u:null,v:-30000};else if(c.in_draw())e={u:null,v:0};else{e=await sfGo(R0.F[i],12);if(e.t)e={u:null,v:0}}
   R0.ev.push(e)}
  if(RV===R0)finish()}
-function finish(){const V=RV;V.cl=[];V.bs=[];V.d=[];V.cnt={w:Array(7).fill(0),b:Array(7).fill(0)};V.ac={w:[],b:[]};let nd=root;
+function finish(){const V=RV;V.cl=[];V.bs=[];V.d=[];V.cnt={w:Array(7).fill(0),b:Array(7).fill(0)};V.ac={w:[],b:[]};V.cp={w:[],b:[]};let nd=root;
  for(let i=1;i<=V.N;i++){nd=nd&&nd.c[strip(V.sans[i-1])];const b=V.ev[i-1],a=V.ev[i],d=Math.max(0,wp(b.v)-wp(-a.v)),bk=!!nd;
   const k=bk?-1:b.u===V.uci[i-1]?0:d<2?1:d<6?2:d<12?3:d<20?4:5;let bs='';
   if(b.u){try{const m=new Chess(V.F[i-1]).move({from:b.u.slice(0,2),to:b.u.slice(2,4),promotion:b.u[4]});bs=m?m.san:''}catch(e){}}
   V.cl.push(k);V.bs.push(bs);V.d.push(d);const s=i%2?'w':'b';V.cnt[s][k+1]++;
-  if(!bk){V.ac[s].push(Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*d)-3.1669)));R[V.sans.slice(0,i).join(' ')]={c:k,best:bs,rep:null,n:0,e:1}}}
+  if(!bk){V.cp[s].push(Math.max(0,cc(b.v)+cc(a.v)));V.ac[s].push(Math.max(0,Math.min(100,103.1668*Math.exp(-0.04354*d)-3.1669)));R[V.sans.slice(0,i).join(' ')]={c:k,best:bs,rep:null,n:0,e:1}}}
  const A=s=>V.ac[s].length?(V.ac[s].reduce((x,y)=>x+y,0)/V.ac[s].length).toFixed(1)+'%':'–';
+ const E=s=>{const e=elo(V,s),p=V.h[s==='w'?'WhiteElo':'BlackElo'];return `<small class="el">${e?'Est. rating ≈ <span class="ev">'+e+'</span>':'Too few moves to estimate'}${p?' · in game '+p:''}</small>`};
  const rows=[6,5,4,3,2,1,0].map(k=>`<div class="rw"><span class="rb" style="background:${k?CO[k-1]:BK}">${k?TT[k-1]:BI}</span><span>${SY[k]}</span><b>${V.cnt.w[k]}</b><b>${V.cnt.b[k]}</b></div>`).join('');
  const pts=V.ev.map((e,i)=>(i/V.N*300).toFixed(1)+','+(60-wp(i%2?-e.v:e.v)*.6).toFixed(1)).join(' ');
  const mvs=V.sans.map((s,i)=>`${i%2?'':`<span class="mn">${i/2+1}.</span>`}<button class="mvb" data-p="${i+1}">${s}${V.cl[i]>=0?`<sup style="color:${CO[V.cl[i]]}">${TT[V.cl[i]]}</sup>`:''}</button>`).join('');
  const card=$('rr');card.hidden=false;
- card.innerHTML=`<h1>Review</h1><p class="nm" style="font-size:18px">${V.h.White||'White'} vs ${V.h.Black||'Black'}</p><p class="idea" style="margin:2px 0 0">${V.h.Result||''}</p><div class="acc"><div><small>White accuracy</small><b>${A('w')}</b></div><div><small>Black accuracy</small><b>${A('b')}</b></div></div><div class="rw"><span></span><small></small><small style="text-align:right">White</small><small style="text-align:right">Black</small></div>${rows}<svg id="rgf" viewBox="0 0 300 60" preserveAspectRatio="none"><line x1="0" x2="300" y1="30" y2="30" stroke="var(--bd)" stroke-dasharray="3"/><polyline points="${pts}" fill="none" stroke="var(--ac)" stroke-width="1.5" vector-effect="non-scaling-stroke"/><line id="rmk" x1="0" x2="0" y1="0" y2="60" stroke="var(--tx)" stroke-width="1" vector-effect="non-scaling-stroke"/></svg><div id="rmv">${mvs}</div>`;
+ card.innerHTML=`<h1>Review</h1><p class="nm" style="font-size:18px">${V.h.White||'White'} vs ${V.h.Black||'Black'}</p><p class="idea" style="margin:2px 0 0">${V.h.Result||''}</p><div class="acc"><div><small>White accuracy</small><b>${A('w')}</b>${E('w')}</div><div><small>Black accuracy</small><b>${A('b')}</b>${E('b')}</div></div><p class="note" style="margin:0 0 8px">Rating is a rough estimate from average move quality. Expect it to be off by 200 or more, and less reliable in short games.</p><div class="rw"><span></span><small></small><small style="text-align:right">White</small><small style="text-align:right">Black</small></div>${rows}<svg id="rgf" viewBox="0 0 300 60" preserveAspectRatio="none"><line x1="0" x2="300" y1="30" y2="30" stroke="var(--bd)" stroke-dasharray="3"/><polyline points="${pts}" fill="none" stroke="var(--ac)" stroke-width="1.5" vector-effect="non-scaling-stroke"/><line id="rmk" x1="0" x2="0" y1="0" y2="60" stroke="var(--tx)" stroke-width="1" vector-effect="non-scaling-stroke"/></svg><div id="rmv">${mvs}</div>`;
  $('r0').onclick=()=>rview(0);$('r1').onclick=()=>rview(Math.max(0,V.ply-1));$('r2').onclick=()=>rview(Math.min(V.N,V.ply+1));$('r3').onclick=()=>rview(V.N);
  $('rmv').onclick=e=>{const b=e.target.closest('[data-p]');if(b)rview(+b.dataset.p)};
  $('rgf').onclick=e=>{const r=$('rgf').getBoundingClientRect();rview(Math.round((e.clientX-r.left)/r.width*V.N))};
